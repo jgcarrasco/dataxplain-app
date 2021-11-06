@@ -147,6 +147,6 @@ with col1:
 
 with col2:
     st.header("Predicción")
-    fig = shap.plots.waterfall(shap_values[0], max_display=9, show=False)
+    fig = shap.plots.waterfall(shap_values[0], max_display=9)
     st.pyplot(fig=fig, bbox_inches='tight')
     plt.clf()

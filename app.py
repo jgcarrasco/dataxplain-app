@@ -13,6 +13,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 from xgboost import XGBClassifier
 
+st.set_option('deprecation.showPyplotGlobalUse', False)
 st.set_page_config(layout="wide")
 
 

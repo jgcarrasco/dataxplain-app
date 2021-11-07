@@ -4,6 +4,8 @@ import re
 import shap
 import streamlit as st
 import streamlit.components.v1 as components
+from PIL import Image
+
 
 import pandas as pd
 import numpy as np
@@ -19,13 +21,12 @@ from xgboost import XGBClassifier
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
 
-st.set_page_config(layout="wide")
-
-
-
-def st_shap(plot, height=None):
-    shap_html = f"<head>{shap.getjs()}</head><body>{plot.html()}</body>"
-    components.html(shap_html, height=height)
+im = Image.open("logo.png")
+st.set_page_config(
+    page_title="DataXplain",
+    page_icon=im,
+    layout="wide",
+)
 
 
 ################################################
@@ -73,7 +74,8 @@ def load_data():
 #             APP                      #
 ########################################
 
-st.title("DataXplain")
+#st.title("DataXplain")
+st.image('titulo.png')
 
 X, y = load_data()
 
@@ -102,9 +104,9 @@ with col1:
     edad = form.number_input("Edad del paciente", min_value=1, max_value=120, value=61)
     sexo = form.selectbox("Sexo", ("Mujer", "Hombre"))
     sexo = 1 if sexo == 'Hombre' else 0
-    ocupacion = form.selectbox("Ocupacion", ("Escolarizado", "Trabajando", "Parado", "Jubilado"))
+    ocupacion = form.selectbox("Ocupación", ("Escolarizado", "Trabajando", "Parado", "Jubilado"))
 
-    submit_button = form.form_submit_button(label='Submit')
+    submit_button = form.form_submit_button(label='Predecir')
 
     if submit_button:
         X_single = pd.DataFrame(data={'gravedad': [gravedad],
@@ -131,6 +133,17 @@ with col1:
 with col2:
     st.header("Predicción")
     
+    # Cambiamos los nombres
+    shap_values.feature_names = ['Gravedad (0->leve 1->grave)',
+                                 'Duracion (semanas)',
+                                 '# Extracciones',
+                                 'Dosis semanales',
+                                 '% Presencialidad',
+                                 'Edad',
+                                 'Sexo (0->Mujer, 1->Hombre)',
+                                 'Trabajando',
+                                 'Parado',
+                                 'Jubilado']
 
     # Transform from logits to probabilities
     shap_value_transformed = shap_transform_scale(shap_values, proba[:, 1], 0)

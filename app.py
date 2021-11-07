@@ -1,3 +1,5 @@
+import joblib
+
 import shap
 import streamlit as st
 import streamlit.components.v1 as components
@@ -14,10 +16,10 @@ from sklearn.preprocessing import OneHotEncoder
 from xgboost import XGBClassifier
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
+
+
 st.set_page_config(layout="wide")
 
-
-matplotlib.use('Agg')
 
 
 def st_shap(plot, height=None):
@@ -32,68 +34,9 @@ def st_shap(plot, height=None):
 @st.cache
 def load_data():
 
-    n_trials = 30
-
-    # ID del estudio
-    id_trial = range(1, n_trials+1)
-    # Gravedad de la enfermedad
-    gravedad = np.random.choice([0, 1], size=n_trials, p=[0.7, 0.3])
-    # Duración (semanas)
-    duracion = np.random.normal(loc=20, scale=5, size=n_trials).astype('int')
-    # Num. extracciones
-    num_extracciones = (np.random.uniform(low=0.25, high=2, size=n_trials) * duracion).astype('int')
-    # presencialidad 
-    presencialidad = np.random.choice([0.25, 0.5, 0.75, 1.], size=n_trials, p=[0.1, 0.2, 0.3, 0.4])
-    # Num. dosis por semana
-    dosis_semana = np.random.uniform(low=4, high=14, size=n_trials).astype('int')
-    # Num. pacientes
-    num_pacientes = np.random.randint(low=50, high=120, size=n_trials)
-
-    df = pd.DataFrame(data={'id_trial': id_trial,
-                            'gravedad': gravedad,
-                           'duracion': duracion,
-                           'num_extracciones': num_extracciones,
-                            'dosis_semana': dosis_semana,
-                           'presencialidad': presencialidad,
-                           'num_pacientes': num_pacientes})
-    df = df.loc[df.index.repeat(df['num_pacientes'])].reset_index(drop=True)
-
-    n = df.shape[0]
-
-    # edad del paciente
-    df['edad'] = np.random.normal(loc=50, scale=10, size=n).astype('int')
-    df['sexo_M'] = np.random.choice([0, 1], size=n)
-    df['ocupacion'] = ['Trabajando' if p > 0.2 else 'Parado' for p in np.random.random(size=n)]
-
-    df.loc[df['edad'] > 65,'ocupacion'] = 'Jubilado' 
-    df.loc[df['edad'] < 18, 'ocupacion'] = 'Escolarizado'
-
-    df['leaves_trial'] = 0.25 * df['edad'] + 2 * df['sexo_M'] - 5 * df['gravedad'] + 5 * df['presencialidad'] +  \
-    0.4 * df['num_extracciones'] 
-
-    for idx, row in df.iterrows():
-        if row['ocupacion'] == 'Jubilado':
-            row['leaves_trial'] -= 10
-        if row['ocupacion'] == 'Trabajando':
-            row['leaves_trial'] += 5
-        if row['ocupacion'] == 'Parado':
-            row['leaves_trial'] -= 5
-        if row['ocupacion'] == 'Escolarizado':
-            row['leaves_trial'] -= 5
-
-
-    df['leaves_trial'] = [1 if value > 28. else 0 for value in df['leaves_trial']]
-
-    X, y = df.drop(columns=['id_trial', 'num_pacientes', 'leaves_trial']), df['leaves_trial']
-
-    ocupacion_label = X['ocupacion'].values.reshape(-1, 1)
-    ohe = OneHotEncoder(categories=[['Escolarizado', 'Trabajando', 'Parado', 'Jubilado']],
-        drop='first', sparse=False)
-    ocupacion_ohe = ohe.fit_transform(ocupacion_label)
+    X = pd.read_csv('X.csv')
+    y = pd.read_csv('y.csv')
     
-    ocupacion_ohe = pd.DataFrame(data=ocupacion_ohe, columns=ohe.categories_[0][1:])
-    X = pd.concat([X, ocupacion_ohe], axis=1)
-    X = X.drop(columns='ocupacion')
     return X, y
 
 ########################################
@@ -104,8 +47,8 @@ st.title("DataXplain")
 
 X, y = load_data()
 
-# train XGBoost model
-model = XGBClassifier(use_label_encoder=False, eval_metric='logloss').fit(X, y)
+# load XGBoost model
+model = joblib.load('model.joblib').fit(X, y)
 
 # explain the model's predictions using SHAP
 # (same syntax works for LightGBM, CatBoost, scikit-learn, transformers, Spark, etc.)
@@ -143,7 +86,7 @@ with col1:
         ocupacion_ohe = pd.DataFrame(data=ocupacion_ohe, columns=ohe.categories_[0][1:])
         X_single = pd.concat([X_single, ocupacion_ohe], axis=1)
         X_single = X_single.drop(columns='ocupacion')
-        st.dataframe(X_single)
+        #st.dataframe(X_single)
         shap_values = explainer(X_single)
 
 with col2:
